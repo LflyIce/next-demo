@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
     // 将 ArrayBuffer 转换为 Node.js Buffer 对象，便于文件操作
     const buffer = Buffer.from(bytes);
 
-    // 拼接目标路径 'src/images'，并递归创建目录（如不存在）
-    const imagesDir = path.join(process.cwd(), 'src', 'images');
+    // 拼接目标路径 'public/images'，并递归创建目录（如不存在）
+    const imagesDir = path.join(process.cwd(), 'public', 'images');
     await mkdir(imagesDir, { recursive: true });
 
     // 生成唯一文件名（时间戳 + 原文件名）
