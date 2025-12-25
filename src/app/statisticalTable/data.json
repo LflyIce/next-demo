@@ -1,7 +1,7 @@
 [
   {
     "key": "1",
-    "image": "s",
+    "image": "/images/1766655762564-image.png",
     "skc": "SKC0010",
     "model": "白色",
     "link": "https://example.com/product1",
@@ -16,5 +16,23 @@
     "platformSubsidy": 18.5,
     "status": 0,
     "name": "帽子"
+  },
+  {
+    "key": "1766655777415",
+    "image": "/images/1766655835247-image.png",
+    "name": "赵六",
+    "skc": "SKC0010",
+    "model": "白色",
+    "link": "https://example.com/product1",
+    "price": 7.58,
+    "minPrice": 8.350000000000001,
+    "shipping": 19,
+    "platformSubsidy": 18.5,
+    "newDiscount": 6.291399999999999,
+    "flashDiscount": 6.443,
+    "purchaseCost": 4.85,
+    "packingCost": 0,
+    "profit": 2.2300000000000004,
+    "status": 1
   }
 ]

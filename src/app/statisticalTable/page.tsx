@@ -48,7 +48,7 @@ export default function StatisticalTable() {
       newDiscount: 0,
       flashDiscount: 0,
       purchaseCost: 0,
-      packingCost: 0,
+      packingCost: 3,
       profit: 0,
       status: 1,
     };
@@ -287,15 +287,9 @@ export default function StatisticalTable() {
       key: 'shipping',
       width: 100,
       editable: true,
-      render: (value: number) => <Select
-      suffixIcon={null}
-        placeholder="快递"
-        style={{ width: '100%' }}
-        defaultValue={value}
-      >
-        <Select.Option value={19}>19</Select.Option>
-        <Select.Option value={32}>32</Select.Option>
-      </Select>,
+      render: (value: number) => <span>
+        ¥ {value.toFixed(2)}
+      </span>
     },
 
     {
