@@ -1,0 +1,20 @@
+[
+  {
+    "key": "1",
+    "image": "s",
+    "skc": "SKC0010",
+    "model": "白色",
+    "link": "https://example.com/product1",
+    "price": 18,
+    "minPrice": 18.5,
+    "shipping": 19,
+    "newDiscount": 14.94,
+    "flashDiscount": 15.299999999999999,
+    "purchaseCost": 12,
+    "packingCost": 3,
+    "profit": 2.5,
+    "platformSubsidy": 18.5,
+    "status": 0,
+    "name": "帽子"
+  }
+]

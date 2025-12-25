@@ -1,0 +1,18 @@
+[
+  {
+    "key": "1",
+    "image": "/images/sample.png",
+    "skc": "SKC001",
+    "model": "Model-A-001",
+    "link": "https://example.com/product1",
+    "price": 299,
+    "minPrice": 259,
+    "shipping": 15,
+    "newDiscount": 248.17,
+    "flashDiscount": 254.15,
+    "purchaseCost": 180,
+    "packingCost": 20,
+    "profit": 59,
+    "status": 1
+  }
+]
