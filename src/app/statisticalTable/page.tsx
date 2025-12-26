@@ -1,8 +1,7 @@
 "use client";
 import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import productData from './data.json';
+import { useState, useEffect } from 'react';
 import { title } from 'process';
 
 interface ProductData {
@@ -25,9 +24,17 @@ interface ProductData {
 }
 
 export default function StatisticalTable() {
-  const [data, setData] = useState<ProductData[]>(productData);
+  const [data, setData] = useState<ProductData[]>([]);
   const [editingKey, setEditingKey] = useState<string>('');
   const [form] = Form.useForm();
+
+  // 从数据库加载数据
+  useEffect(() => {
+    fetch('/api/updateData')
+      .then(res => res.json())
+      .then(data => setData(data))
+      .catch(err => console.error('加载数据失败:', err));
+  }, []);
 
   const isEditing = (record: ProductData) => record.key === editingKey;
 
