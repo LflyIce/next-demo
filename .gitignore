@@ -60,3 +60,4 @@ bin-release/
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
 >>>>>>> 60d001015e29f098c338d9c8e6dd8719087ea28e
+.env*.local
