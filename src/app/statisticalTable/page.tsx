@@ -2,7 +2,6 @@
 import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState, useEffect } from 'react';
-import { title } from 'process';
 
 interface ProductData {
   key: string;
@@ -150,7 +149,7 @@ export default function StatisticalTable() {
         // 最低售价 = 利润为0时的售价 + 3
         const minPrice = shipping + purchaseCost + packingCost - platformSubsidy + 3;
         
-        newData.splice(index, 1, {
+        const updatedItem = {
           ...item,
           ...row,
           price,
@@ -162,41 +161,59 @@ export default function StatisticalTable() {
           flashDiscount: price * 0.85,
           profit,
           minPrice,
-        });
+        };
+        
+        newData.splice(index, 1, updatedItem);
         setData(newData);
         setEditingKey('');
 
-        // 保存到服务器
-        await fetch('/api/updateData', {
+        // 只传递当前编辑行数据
+        const response = await fetch('/api/updateData', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newData),
+          body: JSON.stringify(updatedItem),
         });
+        
+        const result = await response.json();
+        if (!response.ok || result.error) {
+          message.error(result.error || '保存失败');
+          console.error('保存失败:', result);
+        } else {
+          message.success('保存成功');
+        }
       }
     } catch (errInfo) {
-      console.log('Validate Failed:', errInfo);
+      console.error('Validate Failed:', errInfo);
+      message.error('保存失败');
     }
   };
 
   const handleStatusChange = async (key: string) => {
-    const updatedData = data.map(item =>
-      item.key === key ? { ...item, status: item.status === 1 ? 0 : 1 } : item
-    );
-
-    setData(updatedData);
+    const record = data.find(item => item.key === key);
+    if (!record) return;
+    
+    const updatedItem = { ...record, status: record.status === 1 ? 0 : 1 };
+    
+    setData(data.map(item => item.key === key ? updatedItem : item));
 
     try {
       const response = await fetch('/api/updateData', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedItem),
       });
+      
       const result = await response.json();
-      console.log('更新成功:', result);
+      if (!response.ok || result.error) {
+        message.error('状态更新失败');
+        // 回滚状态
+        setData(data.map(item => item.key === key ? record : item));
+      }
     } catch (error) {
       console.error('更新失败:', error);
+      message.error('状态更新失败');
+      // 回滚状态
+      setData(data.map(item => item.key === key ? record : item));
     }
   };
 
@@ -208,14 +225,13 @@ export default function StatisticalTable() {
       okText: '确认',
       cancelText: '取消',
       onOk: async () => {
-        const newData = data.filter(item => item.key !== key);
-        setData(newData);
+        setData(data.filter(item => item.key !== key));
 
         try {
           await fetch('/api/updateData', {
-            method: 'POST',
+            method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newData),
+            body: JSON.stringify({ key }),
           });
           message.success('删除成功');
         } catch (error) {
