@@ -20,14 +20,14 @@ export async function POST(request: NextRequest) {
     
     await pool.query(`
       INSERT INTO info_item (
-        id, image, name, skc, model, link, price, min_price, 
+        id, image_url, name, skc, model, link, price, min_price, 
         shipping, platform_subsidy, new_discount, flash_discount, 
         purchase_cost, packing_cost, profit, status
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
       )
       ON CONFLICT (id) DO UPDATE SET
-        image = EXCLUDED.image,
+        image = EXCLUDED.image_url,
         name = EXCLUDED.name,
         skc = EXCLUDED.skc,
         model = EXCLUDED.model,
@@ -75,13 +75,13 @@ export async function GET() {
   try {
     const { rows } = await pool.query(`
       SELECT 
-        id as key, image, name, skc, model, link, price, 
-        min_price as "minPrice", shipping, 
-        platform_subsidy as "platformSubsidy", 
-        new_discount as "newDiscount", 
-        flash_discount as "flashDiscount", 
-        purchase_cost as "purchaseCost", 
-        packing_cost as "packingCost", 
+        id as key, image_url as image, name, skc, model, link, price, 
+        min_price as minPrice, shipping, 
+        platform_subsidy as platformSubsidy, 
+        new_discount as newDiscount, 
+        flash_discount as flashDiscount, 
+        purchase_cost as purchaseCost, 
+        packing_cost as packingCost, 
         profit, status 
       FROM info_item 
       ORDER BY id
