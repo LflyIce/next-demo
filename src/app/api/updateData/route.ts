@@ -78,12 +78,12 @@ export async function GET() {
     const { rows } = await pool.query(`
       SELECT 
         id as key, image_url as image, name, skc, model, link, price, 
-        min_price as minPrice, shipping, 
-        platform_subsidy as platformSubsidy, 
-        new_discount as newDiscount, 
-        flash_discount as flashDiscount, 
-        purchase_cost as purchaseCost, 
-        packing_cost as packingCost, 
+        min_price as "minPrice", shipping, 
+        platform_subsidy as "platformSubsidy", 
+        new_discount as "newDiscount", 
+        flash_discount as "flashDiscount", 
+        purchase_cost as "purchaseCost", 
+        packing_cost as "packingCost", 
         profit, status 
       FROM info_item 
       ORDER BY id
