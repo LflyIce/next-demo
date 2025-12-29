@@ -300,7 +300,7 @@ export default function StatisticalTable() {
       key: 'minPrice',
       width: 120,
       render: (value: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>
-        ¥ {value.toFixed(2)}
+        ¥ {Number(value).toFixed(2)}
       </span>
     },
 
@@ -311,7 +311,7 @@ export default function StatisticalTable() {
       width: 100,
       editable: true,
       render: (value: number) => <span>
-        ¥ {value.toFixed(2)}
+        ¥ {Number(value).toFixed(2)}
       </span>
     },
 
