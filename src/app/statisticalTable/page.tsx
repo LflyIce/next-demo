@@ -2,6 +2,7 @@
 import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip, Spin } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState, useEffect } from 'react';
+import datas from './data.json';
 
 interface ProductData {
   key: string;
@@ -22,7 +23,10 @@ interface ProductData {
   status: number
 }
 
-const formatNum = (num: number | string, keepNum: number) => {
+const formatNum = (num: number | string | null | undefined, keepNum: number) => {
+  if (num === null || num === undefined || num === '' || isNaN(Number(num))) {
+    return 0;
+  }
   return Number(Number(num).toFixed(keepNum));
 }
 
