@@ -48,10 +48,12 @@ export async function POST(request: NextRequest) {
       item.platformSubsidy, item.newDiscount, item.flashDiscount,
       item.purchaseCost, item.packingCost, item.profit, item.status
     ]);
+    console.log('数据更功:', pool);
     
     return NextResponse.json({ success: true, message: '数据更新成功' });
   } catch (error) {
     console.error('更新数据错误:', error);
+    console.log('错误:', String(error))
     return NextResponse.json({ error: '更新失败', details: String(error) }, { status: 500 });
   }
 }
