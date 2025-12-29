@@ -1,5 +1,5 @@
 "use client";
-import { Table, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip } from 'antd';
+import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip, Spin } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState, useEffect } from 'react';
 
@@ -29,14 +29,23 @@ const formatNum = (num: number | string, keepNum: number) => {
 export default function StatisticalTable() {
   const [data, setData] = useState<ProductData[]>([]);
   const [editingKey, setEditingKey] = useState<string>('');
+  const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
   // 从数据库加载数据
   useEffect(() => {
+    setLoading(true);
     fetch('/api/updateData')
       .then(res => res.json())
-      .then(data => setData(data))
-      .catch(err => console.error('加载数据失败:', err));
+      .then(data => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('加载数据失败:', err);
+        message.error('加载数据失败');
+        setLoading(false);
+      });
   }, []);
 
   const isEditing = (record: ProductData) => record.key === editingKey;
@@ -253,15 +262,22 @@ export default function StatisticalTable() {
       key: 'image',
       width: 100,
       editable: true,
-      render: (url: string) => (
-        url ? (
-          <img 
+      render: (url: string) => {
+        if (!url) return null;
+        return (
+          <Image 
             src={url} 
             alt="商品" 
-            style={{ width: 60, height: 60, objectFit: 'cover' }} 
+            width={60}
+            height={60}
+            style={{ objectFit: 'cover' }}
+            preview={{
+              src: url,
+            }}
+            fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
           />
-        ) : null
-      ),
+        );
+      },
     },
     {
       title: '品名',
@@ -534,26 +550,28 @@ export default function StatisticalTable() {
   // 从 JSON 文件读取数据
 
   return (
-    <div className='p-4'>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className='text-2xl font-bold text-black'>卖品统计</h1>
-        <Button type="primary" onClick={handleAdd}>
-          新增商品
-        </Button>
+    <Spin spinning={loading} tip="加载中...">
+      <div className='p-4'>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className='text-2xl font-bold text-black'>卖品统计</h1>
+          <Button type="primary" onClick={handleAdd}>
+            新增商品
+          </Button>
+        </div>
+        <Form form={form} component={false} onValuesChange={onValuesChange}>
+          <Table
+            components={{
+              body: {
+                cell: EditableCell,
+              },
+            }}
+            columns={columns}
+            dataSource={data}
+            scroll={{ x: 1500 }}
+            pagination={{ pageSize: 10 }}
+          />
+        </Form>
       </div>
-      <Form form={form} component={false} onValuesChange={onValuesChange}>
-        <Table
-          components={{
-            body: {
-              cell: EditableCell,
-            },
-          }}
-          columns={columns}
-          dataSource={data}
-          scroll={{ x: 1500 }}
-          pagination={{ pageSize: 10 }}
-        />
-      </Form>
-    </div>
+    </Spin>
   );
 }
