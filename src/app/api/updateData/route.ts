@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
       )
       ON CONFLICT (id) DO UPDATE SET
-        image = EXCLUDED.image_url,
+        image_url = EXCLUDED.image_url,
         name = EXCLUDED.name,
         skc = EXCLUDED.skc,
         model = EXCLUDED.model,

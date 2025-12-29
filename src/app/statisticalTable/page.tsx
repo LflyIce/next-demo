@@ -1,5 +1,5 @@
 "use client";
-import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip } from 'antd';
+import { Table, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState, useEffect } from 'react';
 
@@ -253,7 +253,15 @@ export default function StatisticalTable() {
       key: 'image',
       width: 100,
       editable: true,
-      render: (url: string) => <Image src={url} alt="商品" width={60} />,
+      render: (url: string) => (
+        url ? (
+          <img 
+            src={url} 
+            alt="商品" 
+            style={{ width: 60, height: 60, objectFit: 'cover' }} 
+          />
+        ) : null
+      ),
     },
     {
       title: '品名',
