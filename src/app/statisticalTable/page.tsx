@@ -22,6 +22,10 @@ interface ProductData {
   status: number
 }
 
+const formatNum = (num: number | string, keepNum: number) => {
+  return Number(Number(num).toFixed(keepNum));
+}
+
 export default function StatisticalTable() {
   const [data, setData] = useState<ProductData[]>([]);
   const [editingKey, setEditingKey] = useState<string>('');
@@ -77,10 +81,10 @@ export default function StatisticalTable() {
     const packingCost = Number(values.packingCost) || 0;
     const platformSubsidy = Number(values.platformSubsidy) || 0;
     const profit = price - shipping - purchaseCost - packingCost + platformSubsidy;
-    const newDiscount = Number(profit * 0.83).toFixed(2);
-    const flashDiscount = Number(profit * 0.85).toFixed(2);
+    const newDiscount = formatNum(Number(profit * 0.83), 2);
+    const flashDiscount = formatNum(Number(profit * 0.85), 2);
     // 最低售价 = 利润为0时的售价 + 3
-    const minPrice = Number(shipping + purchaseCost + packingCost - platformSubsidy + 3).toFixed(2);
+    const minPrice = formatNum(Number(shipping + purchaseCost + packingCost - platformSubsidy + 3), 2);
     form.setFieldsValue({ profit, minPrice, newDiscount, flashDiscount });
   };
 
@@ -92,10 +96,11 @@ export default function StatisticalTable() {
     const packingCost = Number(values.packingCost) || 0;
     const platformSubsidy = Number(values.platformSubsidy) || 0;
     const price = profit + shipping + purchaseCost + packingCost - platformSubsidy;
-    const newDiscount = Number(profit * 0.83).toFixed(2);
-    const flashDiscount = Number(profit * 0.85).toFixed(2);
+    const newDiscount = formatNum(Number(profit * 0.83), 2);
+    const flashDiscount = formatNum(Number(profit * 0.85), 2);
     // 最低售价 = 利润为0时的售价 + 3
-    const minPrice = Number(shipping + purchaseCost + packingCost - platformSubsidy + 3).toFixed(2);
+    const minPrice = formatNum(Number(shipping + purchaseCost + packingCost - platformSubsidy + 3), 2);
+    console.log(price, minPrice, newDiscount, flashDiscount);
     form.setFieldsValue({ price, minPrice, newDiscount, flashDiscount });
   };
 
@@ -292,15 +297,17 @@ export default function StatisticalTable() {
       key: 'price',
       width: 130,
       editable: true,
-      render: (value: number) => `¥${Number(value).toFixed(2)}`,
+      render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
       title: '最低售价',
       dataIndex: 'minPrice',
       key: 'minPrice',
       width: 120,
+      disabled: true,
+      editable: true, // 添加可编辑以支持表单字段
       render: (value: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>
-        ¥ {Number(value).toFixed(2)}
+        ¥ {formatNum(Number(value), 2)}
       </span>
     },
 
@@ -311,7 +318,7 @@ export default function StatisticalTable() {
       width: 100,
       editable: true,
       render: (value: number) => <span>
-        ¥ {Number(value).toFixed(2)}
+        ¥ {formatNum(Number(value), 2)}
       </span>
     },
 
@@ -321,7 +328,7 @@ export default function StatisticalTable() {
       key: 'purchaseCost',
       width: 120,
       editable: true,
-      render: (value: number) => `¥${Number(value).toFixed(2)}`,
+      render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
       title: '打包成本',
@@ -329,28 +336,32 @@ export default function StatisticalTable() {
       key: 'packingCost',
       width: 120,
       // editable: true,
-      render: (value: number) => `¥${Number(value).toFixed(2)}`,
+      render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
       title: '补贴',
       dataIndex: 'platformSubsidy',
       key: 'platformSubsidy',
       width: 100,
-      render: (value: number) => `¥${Number(value).toFixed(2)}`,
+      render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
       title: '83折',
       dataIndex: 'newDiscount',
       key: 'newDiscount',
       width: 100,
-      render: (value: number) => `¥${Number(value).toFixed(2)}`,
+      disabled: true,
+      editable: true, // 添加可编辑以支持表单字段
+      render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
       title: '85折',
       dataIndex: 'flashDiscount',
       key: 'flashDiscount',
       width: 100,
-      render: (value: number) => `¥${Number(value).toFixed(2)}`,
+      disabled: true,
+      editable: true, // 添加可编辑以支持表单字段
+      render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     
     {
@@ -365,7 +376,7 @@ export default function StatisticalTable() {
       },
       render: (value: number) => (
         <span style={{ color: value >= 0 ? 'green' : 'red', fontWeight: 'bold' }}>
-          ¥ {Number(value).toFixed(2)}
+          ¥ {formatNum(Number(value), 2)}
         </span>
       ),
     },
@@ -476,7 +487,10 @@ export default function StatisticalTable() {
 
     if (dataIndex === 'image') {
       inputNode = <Input placeholder="粘贴图片" onPaste={handleImagePaste} />;
-    } else if (dataIndex === 'price' || dataIndex === 'minPrice'  || dataIndex === 'packingCost' || dataIndex === 'platformSubsidy' || dataIndex === 'profit') {
+    } else if (dataIndex === 'minPrice' || dataIndex === 'newDiscount' || dataIndex === 'flashDiscount') {
+      // 只读字段，禁止编辑
+      inputNode = <InputNumber min={0} precision={2} style={{ width: '100%' }} disabled />;
+    } else if (dataIndex === 'price' || dataIndex === 'packingCost' || dataIndex === 'platformSubsidy' || dataIndex === 'profit') {
       inputNode = <InputNumber min={0} precision={2} style={{ width: '100%' }} />;
     } else if (dataIndex === 'shipping') {
       inputNode = (
