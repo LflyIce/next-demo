@@ -32,8 +32,11 @@ const formatNum = (num: number | string | null | undefined, keepNum: number) => 
 
 export default function StatisticalTable() {
   const [data, setData] = useState<ProductData[]>([]);
+  const [filteredData, setFilteredData] = useState<ProductData[]>([]);
   const [editingKey, setEditingKey] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [searchName, setSearchName] = useState('');
+  const [searchStatus, setSearchStatus] = useState<number | undefined>(undefined);
   const [form] = Form.useForm();
 
   // 从数据库加载数据
@@ -43,6 +46,7 @@ export default function StatisticalTable() {
       .then(res => res.json())
       .then(data => {
         setData(data);
+        setFilteredData(data);
         setLoading(false);
       })
       .catch(err => {
@@ -51,6 +55,31 @@ export default function StatisticalTable() {
         setLoading(false);
       });
   }, []);
+
+  // 筛选数据
+  useEffect(() => {
+    let result = data;
+    
+    // 名称模糊搜索
+    if (searchName) {
+      result = result.filter(item => 
+        item.name.toLowerCase().includes(searchName.toLowerCase())
+      );
+    }
+    
+    // 状态筛选
+    if (searchStatus !== undefined) {
+      result = result.filter(item => item.status === searchStatus);
+    }
+    
+    setFilteredData(result);
+  }, [data, searchName, searchStatus]);
+
+  // 重置筛选
+  const handleReset = () => {
+    setSearchName('');
+    setSearchStatus(undefined);
+  };
 
   const isEditing = (record: ProductData) => record.key === editingKey;
 
@@ -265,6 +294,7 @@ export default function StatisticalTable() {
       dataIndex: 'image',
       key: 'image',
       width: 100,
+      resizable: true,
       editable: true,
       render: (url: string) => {
         if (!url) return null;
@@ -287,7 +317,8 @@ export default function StatisticalTable() {
       title: '品名',
       dataIndex: 'name',
       key: 'name',
-      width: 120,
+      width: 150,
+      resizable: true,
       editable: true,
       render: (text: string) => <Tooltip title={text}>
         <span>{text.length > 20 ? text.substring(0, 10) + '...' : text}</span>
@@ -298,6 +329,7 @@ export default function StatisticalTable() {
       dataIndex: 'skc',
       key: 'skc',
       width: 120,
+      resizable: true,
       editable: true,
     },
     {
@@ -305,13 +337,15 @@ export default function StatisticalTable() {
       dataIndex: 'model',
       key: 'model',
       width: 100,
+      resizable: true,
       editable: true,
     },
     {
       title: '链接',
       dataIndex: 'link',
       key: 'link',
-      width: 100,
+      width: 80,
+      resizable: true,
       editable: true,
       render: (url: string) => (
         <a href={url} target="_blank" rel="noopener noreferrer">
@@ -323,7 +357,8 @@ export default function StatisticalTable() {
       title: '售价',
       dataIndex: 'price',
       key: 'price',
-      width: 130,
+      width: 100,
+      resizable: true,
       editable: true,
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
@@ -331,7 +366,8 @@ export default function StatisticalTable() {
       title: '最低售价',
       dataIndex: 'minPrice',
       key: 'minPrice',
-      width: 120,
+      width: 100,
+      resizable: true,
       disabled: true,
       editable: true, // 添加可编辑以支持表单字段
       render: (value: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>
@@ -343,7 +379,8 @@ export default function StatisticalTable() {
       title: '运费',
       dataIndex: 'shipping',
       key: 'shipping',
-      width: 100,
+      width: 80,
+      resizable: true,
       editable: true,
       render: (value: number) => <span>
         ¥ {formatNum(Number(value), 2)}
@@ -354,7 +391,8 @@ export default function StatisticalTable() {
       title: '采购成本',
       dataIndex: 'purchaseCost',
       key: 'purchaseCost',
-      width: 120,
+      width: 100,
+      resizable: true,
       editable: true,
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
@@ -362,7 +400,8 @@ export default function StatisticalTable() {
       title: '打包成本',
       dataIndex: 'packingCost',
       key: 'packingCost',
-      width: 120,
+      width: 100,
+      resizable: true,
       // editable: true,
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
@@ -370,14 +409,16 @@ export default function StatisticalTable() {
       title: '补贴',
       dataIndex: 'platformSubsidy',
       key: 'platformSubsidy',
-      width: 100,
+      width: 80,
+      resizable: true,
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
       title: '83折',
       dataIndex: 'newDiscount',
       key: 'newDiscount',
-      width: 100,
+      width: 80,
+      resizable: true,
       disabled: true,
       editable: true, // 添加可编辑以支持表单字段
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
@@ -386,7 +427,8 @@ export default function StatisticalTable() {
       title: '85折',
       dataIndex: 'flashDiscount',
       key: 'flashDiscount',
-      width: 100,
+      width: 80,
+      resizable: true,
       disabled: true,
       editable: true, // 添加可编辑以支持表单字段
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
@@ -396,7 +438,8 @@ export default function StatisticalTable() {
       title: '利润',
       dataIndex: 'profit',
       key: 'profit',
-      width: 120,
+      width: 100,
+      resizable: true,
       editable: true,
       sorter: {
         compare: (a: ProductData, b: ProductData) => a.profit - b.profit,
@@ -412,6 +455,8 @@ export default function StatisticalTable() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 80,
+      resizable: true,
       render: (status: number, record: ProductData) => {
         return status === 1 ? (
           <Tag color="green" style={{ cursor: 'pointer' }} onClick={() => handleStatusChange(record.key)}>
@@ -427,7 +472,9 @@ export default function StatisticalTable() {
     {
       title: '操作',
       key: 'action',
-      width: 150,
+      width: 120,
+      resizable: true,
+      fixed: 'right',
       render: (_: any, record: ProductData) => {
         const editable = isEditing(record);
         return editable ? (
@@ -556,12 +603,45 @@ export default function StatisticalTable() {
   return (
     <Spin spinning={loading} tip="加载中...">
       <div className='p-4'>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className='text-2xl font-bold text-black'>卖品统计</h1>
+        <h1 className='text-2xl font-bold text-black' style={{ marginBottom: 16 }}>卖品统计</h1>
+        
+        {/* 搜索筛选区域 */}
+        <div style={{ 
+          marginBottom: 16, 
+          padding: '16px', 
+          background: '#fafafa', 
+          borderRadius: '8px',
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
+            <Input
+              placeholder="搜索商品名称"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              style={{ width: 200 }}
+              allowClear
+            />
+            <Select
+              placeholder="选择状态"
+              value={searchStatus}
+              onChange={setSearchStatus}
+              style={{ width: 120 }}
+              allowClear
+            >
+              <Select.Option value={1}>在售</Select.Option>
+              <Select.Option value={0}>下架</Select.Option>
+            </Select>
+            <Button onClick={handleReset}>重置</Button>
+          </div>
           <Button type="primary" onClick={handleAdd}>
             新增商品
           </Button>
         </div>
+        
         <Form form={form} component={false} onValuesChange={onValuesChange}>
           <Table
             components={{
@@ -570,9 +650,17 @@ export default function StatisticalTable() {
               },
             }}
             columns={columns}
-            dataSource={data}
+            dataSource={filteredData}
             scroll={{ x: 1500 }}
-            pagination={{ pageSize: 10 }}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+              pageSizeOptions: ['10', '20', '50', '100'],
+            }}
+            bordered
+            tableLayout="auto"
           />
         </Form>
       </div>
