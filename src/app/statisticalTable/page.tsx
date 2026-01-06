@@ -20,7 +20,8 @@ interface ProductData {
   purchaseCost: number;
   packingCost: number;
   profit: number;
-  status: number
+  status: number;
+  createTime: string;
 }
 
 const formatNum = (num: number | string | null | undefined, keepNum: number) => {
@@ -32,53 +33,65 @@ const formatNum = (num: number | string | null | undefined, keepNum: number) => 
 
 export default function StatisticalTable() {
   const [data, setData] = useState<ProductData[]>([]);
-  const [filteredData, setFilteredData] = useState<ProductData[]>([]);
   const [editingKey, setEditingKey] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [searchStatus, setSearchStatus] = useState<number | undefined>(undefined);
+  const [timeRange, setTimeRange] = useState<string | undefined>(undefined);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageSize, setCurrentPageSize] = useState(10);
   const [form] = Form.useForm();
 
-  // 从数据库加载数据
-  useEffect(() => {
+  // 加载数据
+  const fetchData = async (page = 1, pageSize = 10) => {
     setLoading(true);
-    fetch('/api/updateData')
-      .then(res => res.json())
-      .then(data => {
-        setData(data);
-        setFilteredData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('加载数据失败:', err);
-        message.error('加载数据失败');
-        setLoading(false);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
       });
+      
+      if (searchName) params.append('name', searchName);
+      if (searchStatus !== undefined) params.append('status', searchStatus.toString());
+      if (timeRange) params.append('timeRange', timeRange);
+      
+      const res = await fetch(`/api/updateData?${params}`);
+      const result = await res.json();
+      
+      setData(result.data || []);
+      setTotal(result.total || 0);
+      setCurrentPage(page);
+      setCurrentPageSize(pageSize);
+    } catch (err) {
+      console.error('加载数据失败:', err);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初始加载
+  useEffect(() => {
+    fetchData(1, currentPageSize);
   }, []);
 
-  // 筛选数据
+  // 筛选条件变化时重新查询
   useEffect(() => {
-    let result = data;
-    
-    // 名称模糊搜索
-    if (searchName) {
-      result = result.filter(item => 
-        item.name.toLowerCase().includes(searchName.toLowerCase())
-      );
+    if (currentPage === 1) {
+      fetchData(1, currentPageSize);
+    } else {
+      setCurrentPage(1);
+      fetchData(1, currentPageSize);
     }
-    
-    // 状态筛选
-    if (searchStatus !== undefined) {
-      result = result.filter(item => item.status === searchStatus);
-    }
-    
-    setFilteredData(result);
-  }, [data, searchName, searchStatus]);
+  }, [searchName, searchStatus, timeRange]);
 
   // 重置筛选
   const handleReset = () => {
     setSearchName('');
     setSearchStatus(undefined);
+    setTimeRange(undefined);
+    setCurrentPage(1);
   };
 
   const isEditing = (record: ProductData) => record.key === editingKey;
@@ -103,8 +116,9 @@ export default function StatisticalTable() {
       packingCost: 3,
       profit: 0,
       status: 1,
+      createTime: new Date().toISOString(),
     };
-    setData([...data, newData]);
+    setData([newData, ...data]);
     edit(newData);
   };
 
@@ -227,6 +241,8 @@ export default function StatisticalTable() {
           console.error('保存失败:', result);
         } else {
           message.success('保存成功');
+          // 保存成功后重新加载当前页
+          fetchData(currentPage, currentPageSize);
         }
       }
     } catch (errInfo) {
@@ -469,6 +485,17 @@ export default function StatisticalTable() {
         );
       }
     },
+    ,
+    {
+      title: '创建时间',
+      dataIndex: 'createTime',
+      key: 'createTime',
+      width: 80,
+      resizable: true,
+      render: (createTime: string, record: ProductData) => {
+        return <span>{createTime}</span>
+      }
+    },
     {
       title: '操作',
       key: 'action',
@@ -571,7 +598,7 @@ export default function StatisticalTable() {
       inputNode = (
         <Select style={{ width: '100%' }} defaultValue={19}>
           <Select.Option value={19}>19</Select.Option>
-          <Select.Option value={32}>32</Select.Option>
+          <Select.Option value={33}>33</Select.Option>
         </Select>
       );
     }
@@ -617,7 +644,7 @@ export default function StatisticalTable() {
           flexWrap: 'wrap',
           gap: '12px'
         }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
             <Input
               placeholder="搜索商品名称"
               value={searchName}
@@ -635,6 +662,17 @@ export default function StatisticalTable() {
               <Select.Option value={1}>在售</Select.Option>
               <Select.Option value={0}>下架</Select.Option>
             </Select>
+            <Select
+              placeholder="选择时间"
+              value={timeRange}
+              onChange={setTimeRange}
+              style={{ width: 120 }}
+              allowClear
+            >
+              <Select.Option value="today">今天</Select.Option>
+              <Select.Option value="yesterday">昨天</Select.Option>
+              <Select.Option value="last3days">近三天</Select.Option>
+            </Select>
             <Button onClick={handleReset}>重置</Button>
           </div>
           <Button type="primary" onClick={handleAdd}>
@@ -650,14 +688,19 @@ export default function StatisticalTable() {
               },
             }}
             columns={columns}
-            dataSource={filteredData}
+            dataSource={data}
             scroll={{ x: 1500 }}
             pagination={{
-              pageSize: 10,
+              current: currentPage,
+              pageSize: currentPageSize,
+              total: total,
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total) => `共 ${total} 条`,
               pageSizeOptions: ['10', '20', '50', '100'],
+              onChange: (page, pageSize) => {
+                fetchData(page, pageSize);
+              },
             }}
             bordered
             tableLayout="auto"
