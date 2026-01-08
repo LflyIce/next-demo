@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         packing_cost = EXCLUDED.packing_cost,
         profit = EXCLUDED.profit,
         status = EXCLUDED.status,
-        create_time = EXCLUDED.createTime
+        create_time = EXCLUDED.create_time
     `, [
       item.key, item.image || '', item.name, item.skc, item.model,
       item.link, item.price, item.minPrice, item.shipping,

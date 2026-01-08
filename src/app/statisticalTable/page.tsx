@@ -31,6 +31,15 @@ const formatNum = (num: number | string | null | undefined, keepNum: number) => 
   return Number(Number(num).toFixed(keepNum));
 }
 
+// 格式化日期为 YYYY-MM-DD
+const formatDate = (date: Date | string) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function StatisticalTable() {
   const [data, setData] = useState<ProductData[]>([]);
   const [editingKey, setEditingKey] = useState<string>('');
@@ -116,7 +125,7 @@ export default function StatisticalTable() {
       packingCost: 3,
       profit: 0,
       status: 1,
-      createTime: new Date().toISOString(),
+      createTime: formatDate(new Date()),
     };
     setData([newData, ...data]);
     edit(newData);
@@ -222,6 +231,7 @@ export default function StatisticalTable() {
           flashDiscount: price * 0.85,
           profit,
           minPrice,
+          createTime: item.createTime || formatDate(new Date()),
         };
         
         newData.splice(index, 1, updatedItem);
