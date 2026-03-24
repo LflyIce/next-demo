@@ -117,7 +117,7 @@ export default function StatisticalTable() {
       link: '',
       price: 0,
       minPrice: 0,
-      shipping: 19,
+      shipping: 16,
       platformSubsidy: 18.5,
       newDiscount: 0,
       flashDiscount: 0,
@@ -503,7 +503,9 @@ export default function StatisticalTable() {
       width: 80,
       resizable: true,
       render: (createTime: string, record: ProductData) => {
-        return <span>{createTime}</span>
+        // 将 ISO 格式时间转换为 yyyy-mm-dd 格式
+        const formattedDate = createTime ? formatDate(createTime) : '';
+        return <span>{formattedDate}</span>
       }
     },
     {
