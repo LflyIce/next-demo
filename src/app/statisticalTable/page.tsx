@@ -357,6 +357,7 @@ export default function StatisticalTable() {
       width: 120,
       resizable: true,
       editable: true,
+      hidden: true,
     },
     {
       title: '型号',
@@ -380,7 +381,7 @@ export default function StatisticalTable() {
       ),
     },
     {
-      title: '售价',
+      title: '申报价',
       dataIndex: 'price',
       key: 'price',
       width: 100,
@@ -423,7 +424,7 @@ export default function StatisticalTable() {
       render: (value: number) => `¥${formatNum(Number(value), 2)}`,
     },
     {
-      title: '打包成本',
+      title: '打包费',
       dataIndex: 'packingCost',
       key: 'packingCost',
       width: 100,
