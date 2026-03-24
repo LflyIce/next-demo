@@ -22,6 +22,12 @@ interface ProductData {
   profit: number;
   status: number;
   createTime: string;
+  classId?: number;
+}
+
+interface ItemClass {
+  classId: number;
+  className: string;
 }
 
 const formatNum = (num: number | string | null | undefined, keepNum: number) => {
@@ -46,11 +52,24 @@ export default function StatisticalTable() {
   const [loading, setLoading] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [searchStatus, setSearchStatus] = useState<number | undefined>(undefined);
+  const [searchClassId, setSearchClassId] = useState<number | undefined>(undefined);
   const [timeRange, setTimeRange] = useState<string | undefined>(undefined);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(10);
+  const [itemClasses, setItemClasses] = useState<ItemClass[]>([]);
   const [form] = Form.useForm();
+
+  // 加载商品类别
+  const fetchItemClasses = async () => {
+    try {
+      const res = await fetch('/api/itemClass');
+      const result = await res.json();
+      setItemClasses(result.data || []);
+    } catch (err) {
+      console.error('加载商品类别失败:', err);
+    }
+  };
 
   // 加载数据
   const fetchData = async (page = 1, pageSize = 10) => {
@@ -63,6 +82,7 @@ export default function StatisticalTable() {
       
       if (searchName) params.append('name', searchName);
       if (searchStatus !== undefined) params.append('status', searchStatus.toString());
+      if (searchClassId !== undefined) params.append('classId', searchClassId.toString());
       if (timeRange) params.append('timeRange', timeRange);
       
       const res = await fetch(`/api/updateData?${params}`);
@@ -82,6 +102,7 @@ export default function StatisticalTable() {
 
   // 初始加载
   useEffect(() => {
+    fetchItemClasses();
     fetchData(1, currentPageSize);
   }, []);
 
@@ -93,12 +114,13 @@ export default function StatisticalTable() {
       setCurrentPage(1);
       fetchData(1, currentPageSize);
     }
-  }, [searchName, searchStatus, timeRange]);
+  }, [searchName, searchStatus, searchClassId, timeRange]);
 
   // 重置筛选
   const handleReset = () => {
     setSearchName('');
     setSearchStatus(undefined);
+    setSearchClassId(undefined);
     setTimeRange(undefined);
     setCurrentPage(1);
   };
@@ -126,6 +148,7 @@ export default function StatisticalTable() {
       profit: 0,
       status: 1,
       createTime: formatDate(new Date()),
+      classId: undefined,
     };
     setData([newData, ...data]);
     edit(newData);
@@ -232,6 +255,7 @@ export default function StatisticalTable() {
           profit,
           minPrice,
           createTime: item.createTime || formatDate(new Date()),
+          classId: row.classId || undefined,
         };
         
         newData.splice(index, 1, updatedItem);
@@ -349,6 +373,18 @@ export default function StatisticalTable() {
       render: (text: string) => <Tooltip title={text}>
         <span>{text.length > 20 ? text.substring(0, 10) + '...' : text}</span>
       </Tooltip>,
+    },
+    {
+      title: '商品类别',
+      dataIndex: 'classId',
+      key: 'classId',
+      width: 120,
+      resizable: true,
+      editable: true,
+      render: (classId: number) => {
+        const className = itemClasses.find(c => c.classId === classId)?.className || '-';
+        return <span>{className}</span>;
+      },
     },
     {
       title: '商品SKC',
@@ -602,6 +638,16 @@ export default function StatisticalTable() {
 
     if (dataIndex === 'image') {
       inputNode = <Input placeholder="粘贴图片" onPaste={handleImagePaste} />;
+    } else if (dataIndex === 'classId') {
+      inputNode = (
+        <Select style={{ width: '100%' }} placeholder="请选择类别" allowClear>
+          {itemClasses.map(cls => (
+            <Select.Option key={cls.classId} value={cls.classId}>
+              {cls.className}
+            </Select.Option>
+          ))}
+        </Select>
+      );
     } else if (dataIndex === 'minPrice' || dataIndex === 'newDiscount' || dataIndex === 'flashDiscount') {
       // 只读字段，禁止编辑
       inputNode = <InputNumber min={0} precision={2} style={{ width: '100%' }} disabled />;
@@ -674,6 +720,19 @@ export default function StatisticalTable() {
             >
               <Select.Option value={1}>在售</Select.Option>
               <Select.Option value={0}>下架</Select.Option>
+            </Select>
+            <Select
+              placeholder="选择类别"
+              value={searchClassId}
+              onChange={setSearchClassId}
+              style={{ width: 120 }}
+              allowClear
+            >
+              {itemClasses.map(cls => (
+                <Select.Option key={cls.classId} value={cls.classId}>
+                  {cls.className}
+                </Select.Option>
+              ))}
             </Select>
             <Select
               placeholder="选择时间"

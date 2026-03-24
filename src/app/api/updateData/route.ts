@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       INSERT INTO info_item (
         id, image_url, name, skc, model, link, price, min_price, 
         shipping, platform_subsidy, new_discount, flash_discount, 
-        purchase_cost, packing_cost, profit, status, create_time
+        purchase_cost, packing_cost, profit, status, create_time, class_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
       )
       ON CONFLICT (id) DO UPDATE SET
         image_url = EXCLUDED.image_url,
@@ -42,12 +42,14 @@ export async function POST(request: NextRequest) {
         packing_cost = EXCLUDED.packing_cost,
         profit = EXCLUDED.profit,
         status = EXCLUDED.status,
-        create_time = EXCLUDED.create_time
+        create_time = EXCLUDED.create_time,
+        class_id = EXCLUDED.class_id
     `, [
       item.key, item.image || '', item.name, item.skc, item.model,
       item.link, item.price, item.minPrice, item.shipping,
       item.platformSubsidy, item.newDiscount, item.flashDiscount,
-      item.purchaseCost, item.packingCost, item.profit, item.status, item.createTime
+      item.purchaseCost, item.packingCost, item.profit, item.status, item.createTime,
+      item.classId || null
     ]);
     console.log('数据更功:', pool);
     
@@ -82,6 +84,7 @@ export async function GET(request: NextRequest) {
     const name = searchParams.get('name') || '';
     const status = searchParams.get('status');
     const timeRange = searchParams.get('timeRange');
+    const classId = searchParams.get('classId');
     
     let whereConditions = [];
     let params: any[] = [];
@@ -98,6 +101,13 @@ export async function GET(request: NextRequest) {
     if (status !== null && status !== '') {
       whereConditions.push(`status = $${paramIndex}`);
       params.push(parseInt(status));
+      paramIndex++;
+    }
+    
+    // 类别筛选
+    if (classId !== null && classId !== '' && classId !== 'undefined') {
+      whereConditions.push(`class_id = $${paramIndex}`);
+      params.push(parseInt(classId));
       paramIndex++;
     }
     
@@ -149,7 +159,8 @@ export async function GET(request: NextRequest) {
         flash_discount as "flashDiscount", 
         purchase_cost as "purchaseCost", 
         packing_cost as "packingCost", 
-        profit, status, create_time as "createTime"
+        profit, status, create_time as "createTime",
+        class_id as "classId"
       FROM info_item 
       ${whereClause}
       ORDER BY create_time DESC
