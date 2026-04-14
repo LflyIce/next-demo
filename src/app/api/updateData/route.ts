@@ -1,30 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 
-// 禁用 SSL 证书验证 (开发环境)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-// 设置运行时配置，增加超时时间
 export const maxDuration = 60;
 
-// 创建数据库连接池 - 使用 NON_POOLING URL 避免 SSL 问题
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL,
   ssl: { rejectUnauthorized: false }
 });
 
+// 从 cookie 中的 token 获取用户 id
+async function getUserId(request: NextRequest): Promise<number | null> {
+  const token = request.cookies.get('auth_token')?.value;
+  if (!token) return null;
+  try {
+    const { rows } = await pool.query(
+      'SELECT user_id FROM user_tokens WHERE token = $1 AND expires_at > NOW()',
+      [token]
+    );
+    return rows.length > 0 ? rows[0].user_id : null;
+  } catch {
+    return null;
+  }
+}
+
+// 确保 company_id 列存在
+async function ensureCompanyIdColumn() {
+  await pool.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'info_item' AND column_name = 'company_id') THEN
+        ALTER TABLE info_item ADD COLUMN company_id INTEGER;
+      END IF;
+    END $$;
+  `);
+}
+
 // 更新或插入单条数据
 export async function POST(request: NextRequest) {
   try {
+    await ensureCompanyIdColumn();
+    const userId = await getUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
     const item = await request.json();
-    
+
     await pool.query(`
       INSERT INTO info_item (
         id, image_url, name, skc, model, link, price, min_price, 
         shipping, platform_subsidy, new_discount, flash_discount, 
-        purchase_cost, packing_cost, profit, status, create_time, class_id
+        purchase_cost, packing_cost, profit, status, create_time, class_id, company_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
       )
       ON CONFLICT (id) DO UPDATE SET
         image_url = EXCLUDED.image_url,
@@ -43,31 +72,34 @@ export async function POST(request: NextRequest) {
         profit = EXCLUDED.profit,
         status = EXCLUDED.status,
         create_time = EXCLUDED.create_time,
-        class_id = EXCLUDED.class_id
+        class_id = EXCLUDED.class_id,
+        company_id = EXCLUDED.company_id
     `, [
       item.key, item.image || '', item.name, item.skc, item.model,
       item.link, item.price, item.minPrice, item.shipping,
       item.platformSubsidy, item.newDiscount, item.flashDiscount,
       item.purchaseCost, item.packingCost, item.profit, item.status, item.createTime,
-      item.classId || null
+      item.classId || null, item.companyId || userId
     ]);
-    console.log('数据更功:', pool);
-    
+
     return NextResponse.json({ success: true, message: '数据更新成功' });
   } catch (error) {
     console.error('更新数据错误:', error);
-    console.log('错误:', String(error))
     return NextResponse.json({ error: '更新失败', details: String(error) }, { status: 500 });
   }
 }
 
-// 删除单条数据
+// 删除单条数据（只能删自己的）
 export async function DELETE(request: NextRequest) {
   try {
+    const userId = await getUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
     const { key } = await request.json();
-    
-    await pool.query('DELETE FROM info_item WHERE id = $1', [key]);
-    
+    await pool.query('DELETE FROM info_item WHERE id = $1 AND company_id = $2', [key, userId]);
+
     return NextResponse.json({ success: true, message: '删除成功' });
   } catch (error) {
     console.error('删除数据错误:', error);
@@ -75,9 +107,15 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// 查询所有数据（支持分页和筛选）
+// 查询数据（只查自己的）
 export async function GET(request: NextRequest) {
   try {
+    await ensureCompanyIdColumn();
+    const userId = await getUserId(request);
+    if (!userId) {
+      return NextResponse.json({ data: [], total: 0 }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
@@ -85,37 +123,34 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const timeRange = searchParams.get('timeRange');
     const classId = searchParams.get('classId');
-    
-    let whereConditions = [];
-    let params: any[] = [];
-    let paramIndex = 1;
-    
-    // 名称筛选
+
+    // 基础条件：只查当前用户的商品
+    let whereConditions = [`company_id = $1`];
+    let params: any[] = [userId];
+    let paramIndex = 2;
+
     if (name) {
       whereConditions.push(`name ILIKE $${paramIndex}`);
       params.push(`%${name}%`);
       paramIndex++;
     }
-    
-    // 状态筛选
+
     if (status !== null && status !== '') {
       whereConditions.push(`status = $${paramIndex}`);
       params.push(parseInt(status));
       paramIndex++;
     }
-    
-    // 类别筛选
+
     if (classId !== null && classId !== '' && classId !== 'undefined') {
       whereConditions.push(`class_id = $${paramIndex}`);
       params.push(parseInt(classId));
       paramIndex++;
     }
-    
-    // 时间筛选
+
     if (timeRange) {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
+
       if (timeRange === 'today') {
         whereConditions.push(`create_time >= $${paramIndex}`);
         params.push(today.toISOString());
@@ -134,22 +169,18 @@ export async function GET(request: NextRequest) {
         paramIndex++;
       }
     }
-    
-    const whereClause = whereConditions.length > 0 
-      ? 'WHERE ' + whereConditions.join(' AND ') 
-      : '';
-    
-    // 查询总数
+
+    const whereClause = 'WHERE ' + whereConditions.join(' AND ');
+
     const countResult = await pool.query(
       `SELECT COUNT(*) as total FROM info_item ${whereClause}`,
       params
     );
     const total = parseInt(countResult.rows[0].total);
-    
-    // 查询分页数据
+
     const offset = (page - 1) * pageSize;
     params.push(pageSize, offset);
-    
+
     const { rows } = await pool.query(`
       SELECT 
         id as key, image_url as image, name, skc, model, link, price, 
@@ -160,18 +191,20 @@ export async function GET(request: NextRequest) {
         purchase_cost as "purchaseCost", 
         packing_cost as "packingCost", 
         profit, status, create_time as "createTime",
-        class_id as "classId"
+        class_id as "classId",
+        company_id as "companyId"
       FROM info_item 
       ${whereClause}
       ORDER BY create_time DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, params);
-    
+
     return NextResponse.json({
       data: rows,
       total,
       page,
-      pageSize
+      pageSize,
+      userId,
     });
   } catch (error) {
     console.error('获取数据错误:', error);

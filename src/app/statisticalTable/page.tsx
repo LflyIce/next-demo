@@ -23,6 +23,7 @@ interface ProductData {
   status: number;
   createTime: string;
   classId?: number;
+  companyId?: number;
 }
 
 interface ItemClass {
@@ -58,6 +59,7 @@ export default function StatisticalTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(10);
   const [itemClasses, setItemClasses] = useState<ItemClass[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [form] = Form.useForm();
 
   // 加载商品类别
@@ -92,6 +94,10 @@ export default function StatisticalTable() {
       setTotal(result.total || 0);
       setCurrentPage(page);
       setCurrentPageSize(pageSize);
+      // 保存当前用户 id
+      if (result.userId) {
+        setCurrentUserId(result.userId);
+      }
     } catch (err) {
       console.error('加载数据失败:', err);
       message.error('加载数据失败');
@@ -139,7 +145,7 @@ export default function StatisticalTable() {
       link: '',
       price: 0,
       minPrice: 0,
-      shipping: 16,
+      shipping: 17,
       platformSubsidy: 18.5,
       newDiscount: 0,
       flashDiscount: 0,
@@ -256,6 +262,7 @@ export default function StatisticalTable() {
           minPrice,
           createTime: item.createTime || formatDate(new Date()),
           classId: row.classId || undefined,
+          companyId: item.companyId || currentUserId || undefined,
         };
         
         newData.splice(index, 1, updatedItem);
