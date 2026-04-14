@@ -262,13 +262,12 @@ export default function StatisticalTable() {
 
       let tableHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>th{font-weight:bold;background:#f0f0f0;border:1px solid #ccc;padding:4px 8px;} td{border:1px solid #ccc;padding:4px 8px;vertical-align:middle;} tr{height:45px;} .img-cell{width:50px;height:50px;overflow:hidden;} .img-cell img{width:50px;height:50px;object-fit:cover;}</style><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>商品数据</x:Name><x:WorksheetOptions><x:DisplayGridlines/><x:RowAutoFit/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table style="border-collapse:collapse;table-layout:fixed;">';
       // 设置列宽：图片列宽80px，其他自适应
-      tableHtml += '<colgroup><col><col style="width:80px"><col>' + headers.slice(2).map(() => '<col>').join('') + '</colgroup>';
+      tableHtml += '<colgroup><col><col style="width:120px"><col style="width:200px">' + headers.slice(3).map(() => '<col>').join('') + '</colgroup>';
       tableHtml += '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
       xslRows.forEach(row => {
         tableHtml += '<tr style="height:45px">' + row.map((cell, i) => {
           if (i === 1) {
-            // 图片列：用 div 包裹限制大小
-            return `<td class="img-cell" style="width:60px;height:45px;overflow:hidden;text-align:center;vertical-align:middle;">${cell || '-'}</td>`;
+            return `<td class="img-cell" style="width:120px;height:45px;overflow:hidden;text-align:center;vertical-align:middle;">${cell || '-'}</td>`;
           }
           return `<td>${cell}</td>`;
         }).join('') + '</tr>';
@@ -883,7 +882,7 @@ export default function StatisticalTable() {
             {selectedRowKeys.length > 0 && (
               <span style={{ fontSize: 13, color: '#666' }}>已选 {selectedRowKeys.length} 项</span>
             )}
-            <Dropdown menu={{
+            <Dropdown trigger={['click']} menu={{
               items: [
                 { key: 'xlsx', label: '导出 Excel (.xls)' },
                 { key: 'csv', label: '导出 CSV' },
