@@ -8,9 +8,29 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// 验证 token 是否有效
+async function ensureTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      password_hash VARCHAR(64) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      token VARCHAR(64) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+}
+
 export async function GET(request: NextRequest) {
   try {
+    await ensureTables();
     const token = request.cookies.get('auth_token')?.value;
 
     if (!token) {
@@ -36,7 +56,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 登出 - 清除 token
 export async function DELETE(request: NextRequest) {
   try {
     const token = request.cookies.get('auth_token')?.value;
