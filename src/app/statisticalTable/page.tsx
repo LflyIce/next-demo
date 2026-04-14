@@ -163,7 +163,7 @@ export default function StatisticalTable() {
   };
 
   // 导出功能
-  const handleExport = (type: 'xlsx' | 'csv') => {
+  const handleExport = async (type: 'xlsx' | 'csv') => {
     const exportData = selectedRowKeys.length > 0
       ? data.filter(item => selectedRowKeys.includes(item.key))
       : data;
@@ -175,6 +175,20 @@ export default function StatisticalTable() {
 
     const headers = ['品名', '图片', '链接', 'SKC', '型号', '申报价', '最低售价', '运费', '采购成本', '打包费', '补贴', '83折', '85折', '利润', '状态', '创建时间', '类别'];
     const className = (classId: number | undefined) => itemClasses.find(c => c.classId === classId)?.className || '-';
+
+    // 处理图片：base64 转为 img 标签（Excel）或保留 URL（CSV）
+    const formatImage = (img: string, forExcel: boolean) => {
+      if (!img) return '';
+      if (forExcel) {
+        if (img.startsWith('data:image')) {
+          return `<img src="${img}" width="60" height="60"/>`;
+        }
+        return `<img src="${img}" width="60" height="60"/>`;
+      }
+      // CSV 里图片不放 base64（太长），只放链接
+      if (img.startsWith('data:image')) return '[base64图片]';
+      return img;
+    };
 
     const rows = exportData.map(item => [
       item.name || '',
@@ -197,9 +211,27 @@ export default function StatisticalTable() {
     ]);
 
     if (type === 'csv') {
-      // CSV 导出
-      const bom = '\uFEFF'; // UTF-8 BOM 确保中文不乱码
-      const csvContent = bom + [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+      const bom = '\uFEFF';
+      const csvRows = exportData.map(item => [
+        item.name || '',
+        formatImage(item.image || '', false),
+        item.link || '',
+        item.skc || '',
+        item.model || '',
+        item.price ?? '',
+        item.minPrice ?? '',
+        item.shipping ?? '',
+        item.purchaseCost ?? '',
+        item.packingCost ?? '',
+        item.platformSubsidy ?? '',
+        item.newDiscount ?? '',
+        item.flashDiscount ?? '',
+        item.profit ?? '',
+        item.status === 1 ? '在售' : '下架',
+        item.createTime ? formatDate(item.createTime) : '',
+        className(item.classId),
+      ]);
+      const csvContent = bom + [headers.join(','), ...csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -209,10 +241,30 @@ export default function StatisticalTable() {
       URL.revokeObjectURL(url);
       message.success(`已导出 ${exportData.length} 条数据`);
     } else {
-      // XLSX 导出（用 HTML 表格方式，Excel 可直接打开）
-      let tableHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>商品数据</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>';
-      tableHtml += '<tr>' + headers.map(h => `<th style="background:#f0f0f0;font-weight:bold">${h}</th>`).join('') + '</tr>';
-      rows.forEach(row => {
+      // Excel 导出 - 图片用 img 标签嵌入
+      const xslRows = exportData.map(item => [
+        item.name || '',
+        formatImage(item.image || '', true),
+        item.link ? `<a href="${item.link}">${item.link}</a>` : '',
+        item.skc || '',
+        item.model || '',
+        item.price ?? '',
+        item.minPrice ?? '',
+        item.shipping ?? '',
+        item.purchaseCost ?? '',
+        item.packingCost ?? '',
+        item.platformSubsidy ?? '',
+        item.newDiscount ?? '',
+        item.flashDiscount ?? '',
+        item.profit ?? '',
+        item.status === 1 ? '在售' : '下架',
+        item.createTime ? formatDate(item.createTime) : '',
+        className(item.classId),
+      ]);
+
+      let tableHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>th{font-weight:bold;background:#f0f0f0;border:1px solid #ccc;padding:4px 8px;} td{border:1px solid #ccc;padding:4px 8px;}</style><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>商品数据</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>';
+      tableHtml += '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      xslRows.forEach(row => {
         tableHtml += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
       });
       tableHtml += '</table></body></html>';
