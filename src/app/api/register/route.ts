@@ -9,7 +9,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// 确保用户表存在
 async function ensureTables() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -30,9 +29,8 @@ async function ensureTables() {
     );
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_tokens_token ON user_tokens(token)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_tokens_expires ON user_tokens(expires_at)`);
   
-  // 插入默认用户 (admin / admin123)
+  // 插入默认用户
   const hash = crypto.createHash('sha256').update('admin123').digest('hex');
   await pool.query(`
     INSERT INTO users (username, password_hash) 
@@ -41,55 +39,62 @@ async function ensureTables() {
   `, [hash]);
 }
 
-function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // 确保表存在
     await ensureTables();
 
-    const { username, password } = await request.json();
+    const { username, password, email } = await request.json();
 
     if (!username || !password) {
       return NextResponse.json({ success: false, message: '用户名和密码不能为空' }, { status: 400 });
     }
 
-    const { rows } = await pool.query(
-      'SELECT id, username, password_hash FROM users WHERE username = $1',
+    if (username.length < 3) {
+      return NextResponse.json({ success: false, message: '用户名至少3个字符' }, { status: 400 });
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ success: false, message: '密码至少6个字符' }, { status: 400 });
+    }
+
+    // 检查用户名是否已存在
+    const { rows: existing } = await pool.query(
+      'SELECT id FROM users WHERE username = $1',
       [username]
     );
 
-    if (rows.length === 0) {
-      return NextResponse.json({ success: false, message: '用户名或密码错误' }, { status: 401 });
+    if (existing.length > 0) {
+      return NextResponse.json({ success: false, message: '用户名已存在' }, { status: 409 });
     }
 
-    const user = rows[0];
-    const inputHash = hashPassword(password);
-
-    if (user.password_hash !== inputHash) {
-      return NextResponse.json({ success: false, message: '用户名或密码错误' }, { status: 401 });
+    // 检查邮箱是否已被使用
+    if (email) {
+      const { rows: emailExisting } = await pool.query(
+        'SELECT id FROM users WHERE email = $1',
+        [email]
+      );
+      if (emailExisting.length > 0) {
+        return NextResponse.json({ success: false, message: '邮箱已被注册' }, { status: 409 });
+      }
     }
 
-    const token = generateToken();
-
+    // 创建用户
+    const passwordHash = hashPassword(password);
     await pool.query(
-      'INSERT INTO user_tokens (user_id, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL \'24 hours\')',
-      [user.id, token]
+      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)',
+      [username, email || null, passwordHash]
     );
 
     return NextResponse.json({
       success: true,
-      token,
-      username: user.username,
+      message: '注册成功',
     });
   } catch (error) {
-    console.error('登录错误:', error);
+    console.error('注册错误:', error);
     return NextResponse.json({ success: false, message: '服务器错误', details: String(error) }, { status: 500 });
   }
 }
