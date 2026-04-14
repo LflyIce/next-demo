@@ -89,17 +89,22 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#ffffff',
       fontFamily: 'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       perspective: '1200px',
+      zIndex: 999,
     }}>
       {/* 背景装饰 */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
         zIndex: 0, overflow: 'hidden', pointerEvents: 'none',
       }}>
         <div style={{
