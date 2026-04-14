@@ -1,5 +1,6 @@
 "use client";
-import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip, Spin } from 'antd';
+import { Table, Image, Tag, Input, InputNumber, Select, Form, Button, Space, Modal, message, Tooltip, Spin, Dropdown } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useState, useEffect } from 'react';
 import datas from './data.json';
@@ -60,6 +61,7 @@ export default function StatisticalTable() {
   const [currentPageSize, setCurrentPageSize] = useState(10);
   const [itemClasses, setItemClasses] = useState<ItemClass[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [form] = Form.useForm();
 
   // 加载商品类别
@@ -158,6 +160,69 @@ export default function StatisticalTable() {
     };
     setData([newData, ...data]);
     edit(newData);
+  };
+
+  // 导出功能
+  const handleExport = (type: 'xlsx' | 'csv') => {
+    const exportData = selectedRowKeys.length > 0
+      ? data.filter(item => selectedRowKeys.includes(item.key))
+      : data;
+
+    if (exportData.length === 0) {
+      message.warning('没有可导出的数据');
+      return;
+    }
+
+    const headers = ['品名', 'SKC', '型号', '申报价', '最低售价', '运费', '采购成本', '打包费', '补贴', '83折', '85折', '利润', '状态', '创建时间', '类别'];
+    const className = (classId: number | undefined) => itemClasses.find(c => c.classId === classId)?.className || '-';
+
+    const rows = exportData.map(item => [
+      item.name || '',
+      item.skc || '',
+      item.model || '',
+      item.price ?? '',
+      item.minPrice ?? '',
+      item.shipping ?? '',
+      item.purchaseCost ?? '',
+      item.packingCost ?? '',
+      item.platformSubsidy ?? '',
+      item.newDiscount ?? '',
+      item.flashDiscount ?? '',
+      item.profit ?? '',
+      item.status === 1 ? '在售' : '下架',
+      item.createTime ? formatDate(item.createTime) : '',
+      className(item.classId),
+    ]);
+
+    if (type === 'csv') {
+      // CSV 导出
+      const bom = '\uFEFF'; // UTF-8 BOM 确保中文不乱码
+      const csvContent = bom + [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `商品数据_${formatDate(new Date())}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      message.success(`已导出 ${exportData.length} 条数据`);
+    } else {
+      // XLSX 导出（用 HTML 表格方式，Excel 可直接打开）
+      let tableHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>商品数据</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>';
+      tableHtml += '<tr>' + headers.map(h => `<th style="background:#f0f0f0;font-weight:bold">${h}</th>`).join('') + '</tr>';
+      rows.forEach(row => {
+        tableHtml += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+      });
+      tableHtml += '</table></body></html>';
+      const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `商品数据_${formatDate(new Date())}.xls`;
+      link.click();
+      URL.revokeObjectURL(url);
+      message.success(`已导出 ${exportData.length} 条数据`);
+    }
   };
 
   // 操作按钮切换
@@ -754,9 +819,23 @@ export default function StatisticalTable() {
             </Select>
             <Button onClick={handleReset}>重置</Button>
           </div>
-          <Button type="primary" onClick={handleAdd}>
-            新增商品
-          </Button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {selectedRowKeys.length > 0 && (
+              <span style={{ fontSize: 13, color: '#666' }}>已选 {selectedRowKeys.length} 项</span>
+            )}
+            <Dropdown menu={{
+              items: [
+                { key: 'xlsx', label: '导出 Excel (.xls)' },
+                { key: 'csv', label: '导出 CSV' },
+              ],
+              onClick: ({ key }) => handleExport(key as 'xlsx' | 'csv'),
+            }}>
+              <Button icon={<DownloadOutlined />}>导出</Button>
+            </Dropdown>
+            <Button type="primary" onClick={handleAdd}>
+              新增商品
+            </Button>
+          </div>
         </div>
         
         <Form form={form} component={false} onValuesChange={onValuesChange}>
@@ -768,6 +847,10 @@ export default function StatisticalTable() {
             }}
             columns={columns}
             dataSource={data}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys,
+            }}
             scroll={{ x: 1500 }}
             pagination={{
               current: currentPage,
