@@ -173,11 +173,13 @@ export default function StatisticalTable() {
       return;
     }
 
-    const headers = ['品名', 'SKC', '型号', '申报价', '最低售价', '运费', '采购成本', '打包费', '补贴', '83折', '85折', '利润', '状态', '创建时间', '类别'];
+    const headers = ['品名', '图片', '链接', 'SKC', '型号', '申报价', '最低售价', '运费', '采购成本', '打包费', '补贴', '83折', '85折', '利润', '状态', '创建时间', '类别'];
     const className = (classId: number | undefined) => itemClasses.find(c => c.classId === classId)?.className || '-';
 
     const rows = exportData.map(item => [
       item.name || '',
+      item.image || '',
+      item.link || '',
       item.skc || '',
       item.model || '',
       item.price ?? '',
