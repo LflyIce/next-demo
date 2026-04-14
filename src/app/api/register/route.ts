@@ -19,6 +19,14 @@ async function ensureTables() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // 兼容旧表：如果没有 email 列就加上
+  await pool.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'email') THEN
+        ALTER TABLE users ADD COLUMN email VARCHAR(100);
+      END IF;
+    END $$;
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_tokens (
       id SERIAL PRIMARY KEY,
