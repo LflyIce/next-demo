@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   try {
     await ensureTables();
 
-    const { username, password, email } = await request.json();
+    const { username, password } = await request.json();
 
     if (!username || !password) {
       return NextResponse.json({ success: false, message: '用户名和密码不能为空' }, { status: 400 });
@@ -79,22 +79,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: '用户名已存在' }, { status: 409 });
     }
 
-    // 检查邮箱是否已被使用
-    if (email) {
-      const { rows: emailExisting } = await pool.query(
-        'SELECT id FROM users WHERE email = $1',
-        [email]
-      );
-      if (emailExisting.length > 0) {
-        return NextResponse.json({ success: false, message: '邮箱已被注册' }, { status: 409 });
-      }
-    }
-
     // 创建用户
     const passwordHash = hashPassword(password);
     await pool.query(
-      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)',
-      [username, email || null, passwordHash]
+      'INSERT INTO users (username, password_hash) VALUES ($1, $2)',
+      [username, passwordHash]
     );
 
     return NextResponse.json({

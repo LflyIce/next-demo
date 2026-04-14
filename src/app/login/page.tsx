@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Form, Input, Button, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -38,7 +38,7 @@ export default function LoginPage() {
     }
   };
 
-  const onRegister = async (values: { username: string; password: string; email: string }) => {
+  const onRegister = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
       const res = await fetch('/api/register', {
@@ -229,12 +229,7 @@ export default function LoginPage() {
               ]} style={{ marginBottom: 16 }}>
                 <Input prefix={<UserOutlined style={{ color: '#808080' }} />} placeholder="用户名" style={inputStyle} />
               </Form.Item>
-              <Form.Item name="email" rules={[
-                { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入正确的邮箱地址' },
-              ]} style={{ marginBottom: 16 }}>
-                <Input prefix={<MailOutlined style={{ color: '#808080' }} />} placeholder="邮箱" style={inputStyle} />
-              </Form.Item>
+
               <Form.Item name="password" rules={[
                 { required: true, message: '请输入密码' },
                 { min: 6, message: '密码至少6个字符' },
