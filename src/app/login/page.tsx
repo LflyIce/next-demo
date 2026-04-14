@@ -100,7 +100,7 @@ export default function LoginPage() {
       backgroundColor: '#ffffff',
       fontFamily: 'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       perspective: '1200px',
-      zIndex: 999,
+      overflow: 'hidden',
     }}>
       {/* 背景装饰 */}
       <div style={{
